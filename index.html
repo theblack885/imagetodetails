@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Details - GitHub Live Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .search-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            text-align: left;
+            display: none;
+        }
+        .bug-log-box {
+            width: 100%;
+            max-width: 450px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            text-align: left;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .bug-error { color: #ff5555; font-weight: bold; }
+        .bug-success { color: #55ff55; }
+        .bug-info { color: #55ffff; }
+    </style>
+</head>
+<body>
+
+<div class="search-container">
+    <h2>यूज़र डिटेल्स खोजें</h2>
+    <input type="text" id="phoneInput" placeholder="फ़ोन नंबर दर्ज करें (e.g. 8482915363)">
+    <button onclick="searchUser()">खोजें (Search)</button>
+
+    <div id="resultBox" class="result-box">
+        <strong>नाम:</strong> <span id="resName"></span><br><br>
+        <strong>डिटेल्स:</strong> <span id="resDetails"></span><br><br>
+        <strong>स्टेटस/URL:</strong> <span id="resStatus"></span>
+    </div>
+</div>
+
+<!-- 🐛 लाइव बग ट्रैकर स्क्रीन -->
+<div class="bug-log-box">
+    <div style="border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; font-weight: bold; color: #fff;">
+        🐛 GITHUB LIVE BUG TRACKER:
+    </div>
+    <div id="bugLogs">पेज लोड हो रहा है...</div>
+</div>
+
+<!-- सुरक्षित फ़ायरबेस मॉडर्न स्क्रिप्ट्स -->
+<script type="module">
+    import { initializeApp } from "https://gstatic.com";
+    import { getFirestore, doc, getDoc } from "https://gstatic.com";
+
+    // बग ट्रैकर फंक्शन
+    window.logBug = function(message, type = 'info') {
+        const logsDiv = document.getElementById("bugLogs");
+        let className = 'bug-info';
+        if (type === 'error') className = 'bug-error';
+        if (type === 'success') className = 'bug-success';
+        logsDiv.innerHTML = `<div class="${className}">[${new Date().toLocaleTimeString()}] ${message}</div>` + logsDiv.innerHTML;
+    }
+
+    // फ़ायरबेस कॉन्फ़िगरेशन डिटेल्स (आपकी ओरिजिनल कीज)
+    const firebaseConfig = {
+        apiKey: "AIzaSyAzCILK4qWjGYvkZX0Y4SUtCqduJNA0Njk",
+        authDomain: "://firebaseapp.com",
+        projectId: "image-to-details",
+        storageBucket: "image-to-details.firebasestorage.app",
+        messagingSenderId: "648004942829",
+        appId: "1:648004942829:web:0120e9bc16317bba38c5e4",
+        measurementId: "G-E20PGF578T"
+    };
+
+    let db;
+    try {
+        logBug("GitHub Pages से फायरबेस कनेक्ट किया जा रहा है...", 'info');
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        logBug("फायरबेस सफलतापूर्वक लोड हो गया! अब आप सर्च कर सकते हैं।", 'success');
+    } catch (e) {
+        logBug(`फायरबेस लोड फेल हुआ: ${e.message}`, 'error');
+    }
+
+    // सर्च फंक्शन
+    window.searchUser = async function() {
+        logBug("सर्च बटन दबाया गया। प्रोसेस शुरू...", 'info');
+        
+        const phone = document.getElementById("phoneInput").value.trim();
+        const resultBox = document.getElementById("resultBox");
+        resultBox.style.display = "none";
+
+        if (!phone) {
+            logBug("कृपया एक वैध फ़ोन नंबर टाइप करें।", 'error');
+            return;
+        }
+
+        if (!db) {
+            logBug("फायरबेस कनेक्शन उपलब्ध नहीं है!", 'error');
+            return;
+        }
+
+        try {
+            logBug(`डेटाबेस कलेक्शन 'users' में डॉक्यूमेंट ID: ${phone} खोजी जा रही है...`, 'info');
+            const docRef = doc(db, "users", phone);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                document.getElementById("resName").innerText = userData.name || "उपलब्ध नहीं";
+                document.getElementById("resDetails").innerText = userData.details || "उपलब्ध नहीं";
+                document.getElementById("resStatus").innerText = userData.status || userData.image_url || "उपलब्ध नहीं";
+                resultBox.style.display = "block";
+                logBug("बधाई हो! डेटा मिल गया और स्क्रीन पर दिखा दिया गया है।", 'success');
+            } else {
+                logBug(`खोज समाप्त: डेटाबेस में नंबर (${phone}) नाम का कोई डॉक्यूमेंट नहीं मिला।`, 'error');
+            }
+        } catch (error) {
+            logBug(`डेटा लाने में एरर आया: ${error.message}`, 'error');
+        }
+    }
+</script>
+
+</body>
+</html>
