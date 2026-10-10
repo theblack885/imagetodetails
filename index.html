@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image to Details - GitHub Live Search</title>
+    <title>Image to Details - GitHub Live Search V2</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -79,9 +79,9 @@
 <body>
 
 <div class="search-container">
-    <h2>यूज़र डिटेल्स खोजें</h2>
+    <h2>यूज़र डिटेल्स खोजें (वर्ज़न 2.0)</h2>
     <input type="text" id="phoneInput" placeholder="फ़ोन नंबर दर्ज करें (e.g. 8482915363)">
-    <button onclick="searchUser()">खोजें (Search)</button>
+    <button id="searchBtn">खोजें (Search)</button>
 
     <div id="resultBox" class="result-box">
         <strong>नाम:</strong> <span id="resName"></span><br><br>
@@ -90,29 +90,28 @@
     </div>
 </div>
 
-<!-- 🐛 लाइव बग ट्रैकर स्क्रीन -->
 <div class="bug-log-box">
     <div style="border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; font-weight: bold; color: #fff;">
-        🐛 GITHUB LIVE BUG TRACKER:
+        🐛 BUG TRACKER SYSTEM V2:
     </div>
-    <div id="bugLogs">पेज लोड हो रहा है...</div>
+    <div id="bugLogs">सिस्टम चालू हो रहा है...</div>
 </div>
 
-<!-- सुरक्षित फ़ायरबेस मॉडर्न स्क्रिप्ट्स -->
+<!-- स्क्रिप्ट्स को लोड करने का बिल्कुल नया और स्वतंत्र तरीका -->
 <script type="module">
     import { initializeApp } from "https://gstatic.com";
     import { getFirestore, doc, getDoc } from "https://gstatic.com";
 
-    // बग ट्रैकर फंक्शन
-    window.logBug = function(message, type = 'info') {
-        const logsDiv = document.getElementById("bugLogs");
+    const logsDiv = document.getElementById("bugLogs");
+    
+    function logBug(message, type = 'info') {
         let className = 'bug-info';
         if (type === 'error') className = 'bug-error';
         if (type === 'success') className = 'bug-success';
         logsDiv.innerHTML = `<div class="${className}">[${new Date().toLocaleTimeString()}] ${message}</div>` + logsDiv.innerHTML;
     }
 
-    // फ़ायरबेस कॉन्फ़िगरेशन डिटेल्स (आपकी ओरिजिनल कीज)
+    // फ़ायरबेस कीज़
     const firebaseConfig = {
         apiKey: "AIzaSyAzCILK4qWjGYvkZX0Y4SUtCqduJNA0Njk",
         authDomain: "://firebaseapp.com",
@@ -125,34 +124,34 @@
 
     let db;
     try {
-        logBug("GitHub Pages से फायरबेस कनेक्ट किया जा रहा है...", 'info');
+        logBug("सिस्टम वर्ज़न 2.0: फायरबेस लोड किया जा रहा है...", 'info');
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
-        logBug("फायरबेस सफलतापूर्वक लोड हो गया! अब आप सर्च कर सकते हैं।", 'success');
+        logBug("बधाई हो! फायरबेस सफलतापूर्वक एक्टिवेट हो गया है।", 'success');
     } catch (e) {
-        logBug(`फायरबेस लोड फेल हुआ: ${e.message}`, 'error');
+        logBug(`कनेक्शन फेल: ${e.message}`, 'error');
     }
 
-    // सर्च फंक्शन
-    window.searchUser = async function() {
-        logBug("सर्च बटन दबाया गया। प्रोसेस शुरू...", 'info');
+    // बटन क्लिक इवेंट को जावास्क्रिप्ट के अंदर से जोड़ना (ताकि कोई पुराना फंक्शन ब्लॉक न हो)
+    document.getElementById("searchBtn").addEventListener("click", async () => {
+        logBug("बटन पर क्लिक हुआ! डेटाबेस सर्च शुरू...", 'info');
         
         const phone = document.getElementById("phoneInput").value.trim();
         const resultBox = document.getElementById("resultBox");
         resultBox.style.display = "none";
 
         if (!phone) {
-            logBug("कृपया एक वैध फ़ोन नंबर टाइप करें।", 'error');
+            logBug("त्रुटि: कृपया एक फ़ोन नंबर बॉक्स में टाइप करें!", 'error');
             return;
         }
 
         if (!db) {
-            logBug("फायरबेस कनेक्शन उपलब्ध नहीं है!", 'error');
+            logBug("क्रिटिकल एरर: फायरबेस का डेटाबेस लोड नहीं हो पाया है।", 'error');
             return;
         }
 
         try {
-            logBug(`डेटाबेस कलेक्शन 'users' में डॉक्यूमेंट ID: ${phone} खोजी जा रही है...`, 'info');
+            logBug(`नंबर ${phone} को फ़ायरस्टोर में खोज रहे हैं...`, 'info');
             const docRef = doc(db, "users", phone);
             const docSnap = await getDoc(docRef);
 
@@ -162,14 +161,14 @@
                 document.getElementById("resDetails").innerText = userData.details || "उपलब्ध नहीं";
                 document.getElementById("resStatus").innerText = userData.status || userData.image_url || "उपलब्ध नहीं";
                 resultBox.style.display = "block";
-                logBug("बधाई हो! डेटा मिल गया और स्क्रीन पर दिखा दिया गया है।", 'success');
+                logBug("सफलता: डेटा मिल गया और स्क्रीन पर लोड हो चुका है!", 'success');
             } else {
-                logBug(`खोज समाप्त: डेटाबेस में नंबर (${phone}) नाम का कोई डॉक्यूमेंट नहीं मिला।`, 'error');
+                logBug(`खोज समाप्त: इस नंबर (${phone}) का कोई भी रिकॉर्ड डेटाबेस में मौजूद नहीं है।`, 'error');
             }
         } catch (error) {
-            logBug(`डेटा लाने में एरर आया: ${error.message}`, 'error');
+            logBug(`एरर: ${error.message}`, 'error');
         }
-    }
+    });
 </script>
 
 </body>
