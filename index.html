@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image to Details - GitHub Live Search V2</title>
+    <title>Image to Details - Search System</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f7f6;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            align-items: center;
+            height: 100vh;
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
@@ -25,7 +24,6 @@
             text-align: center;
             width: 100%;
             max-width: 400px;
-            margin-bottom: 20px;
         }
         input[type="text"] {
             width: 100%;
@@ -45,6 +43,7 @@
             border-radius: 5px;
             font-size: 16px;
             cursor: pointer;
+            transition: background 0.3s;
         }
         button:hover {
             background-color: #0056b3;
@@ -57,31 +56,21 @@
             text-align: left;
             display: none;
         }
-        .bug-log-box {
-            width: 100%;
-            max-width: 450px;
-            background-color: #1e1e1e;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            text-align: left;
-            font-size: 13px;
-            max-height: 200px;
-            overflow-y: auto;
+        .error {
+            color: red;
+            margin-top: 15px;
+            font-size: 14px;
         }
-        .bug-error { color: #ff5555; font-weight: bold; }
-        .bug-success { color: #55ff55; }
-        .bug-info { color: #55ffff; }
     </style>
 </head>
 <body>
 
 <div class="search-container">
-    <h2>यूज़र डिटेल्स खोजें (वर्ज़न 2.0)</h2>
+    <h2>यूज़र डिटेल्स खोजें</h2>
     <input type="text" id="phoneInput" placeholder="फ़ोन नंबर दर्ज करें (e.g. 8482915363)">
     <button id="searchBtn">खोजें (Search)</button>
+
+    <div id="errorMsg" class="error"></div>
 
     <div id="resultBox" class="result-box">
         <strong>नाम:</strong> <span id="resName"></span><br><br>
@@ -90,28 +79,12 @@
     </div>
 </div>
 
-<div class="bug-log-box">
-    <div style="border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; font-weight: bold; color: #fff;">
-        🐛 BUG TRACKER SYSTEM V2:
-    </div>
-    <div id="bugLogs">सिस्टम चालू हो रहा है...</div>
-</div>
+<!-- सुरक्षित फ़ायरबेस कम्पैट स्क्रिप्ट्स -->
+<script src="https://gstatic.com"></script>
+<script src="https://gstatic.com"></script>
 
-<!-- स्क्रिप्ट्स को लोड करने का बिल्कुल नया और स्वतंत्र तरीका -->
-<script type="module">
-    import { initializeApp } from "https://gstatic.com";
-    import { getFirestore, doc, getDoc } from "https://gstatic.com";
-
-    const logsDiv = document.getElementById("bugLogs");
-    
-    function logBug(message, type = 'info') {
-        let className = 'bug-info';
-        if (type === 'error') className = 'bug-error';
-        if (type === 'success') className = 'bug-success';
-        logsDiv.innerHTML = `<div class="${className}">[${new Date().toLocaleTimeString()}] ${message}</div>` + logsDiv.innerHTML;
-    }
-
-    // फ़ायरबेस कीज़
+<script>
+    // फ़ायरबेस कॉन्फ़िगरेशन
     const firebaseConfig = {
         apiKey: "AIzaSyAzCILK4qWjGYvkZX0Y4SUtCqduJNA0Njk",
         authDomain: "://firebaseapp.com",
@@ -122,51 +95,40 @@
         measurementId: "G-E20PGF578T"
     };
 
-    let db;
-    try {
-        logBug("सिस्टम वर्ज़न 2.0: फायरबेस लोड किया जा रहा है...", 'info');
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        logBug("बधाई हो! फायरबेस सफलतापूर्वक एक्टिवेट हो गया है।", 'success');
-    } catch (e) {
-        logBug(`कनेक्शन फेल: ${e.message}`, 'error');
-    }
+    // फ़ायरबेस इनिशियलाइज़
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    // बटन क्लिक इवेंट को जावास्क्रिप्ट के अंदर से जोड़ना (ताकि कोई पुराना फंक्शन ब्लॉक न हो)
+    // सर्च बटन इवेंट लिस्टनर
     document.getElementById("searchBtn").addEventListener("click", async () => {
-        logBug("बटन पर क्लिक हुआ! डेटाबेस सर्च शुरू...", 'info');
-        
         const phone = document.getElementById("phoneInput").value.trim();
         const resultBox = document.getElementById("resultBox");
+        const errorMsg = document.getElementById("errorMsg");
+        
+        errorMsg.innerText = "";
         resultBox.style.display = "none";
 
         if (!phone) {
-            logBug("त्रुटि: कृपया एक फ़ोन नंबर बॉक्स में टाइप करें!", 'error');
-            return;
-        }
-
-        if (!db) {
-            logBug("क्रिटिकल एरर: फायरबेस का डेटाबेस लोड नहीं हो पाया है।", 'error');
+            errorMsg.innerText = "कृपया एक वैध फ़ोन नंबर टाइप करें।";
             return;
         }
 
         try {
-            logBug(`नंबर ${phone} को फ़ायरस्टोर में खोज रहे हैं...`, 'info');
-            const docRef = doc(db, "users", phone);
-            const docSnap = await getDoc(docRef);
+            const docRef = db.collection("users").doc(phone);
+            const docSnap = await docRef.get();
 
-            if (docSnap.exists()) {
+            if (docSnap.exists) {
                 const userData = docSnap.data();
                 document.getElementById("resName").innerText = userData.name || "उपलब्ध नहीं";
                 document.getElementById("resDetails").innerText = userData.details || "उपलब्ध नहीं";
                 document.getElementById("resStatus").innerText = userData.status || userData.image_url || "उपलब्ध नहीं";
                 resultBox.style.display = "block";
-                logBug("सफलता: डेटा मिल गया और स्क्रीन पर लोड हो चुका है!", 'success');
             } else {
-                logBug(`खोज समाप्त: इस नंबर (${phone}) का कोई भी रिकॉर्ड डेटाबेस में मौजूद नहीं है।`, 'error');
+                errorMsg.innerText = "इस नंबर का कोई रिकॉर्ड डेटाबेस में नहीं मिला।";
             }
         } catch (error) {
-            logBug(`एरर: ${error.message}`, 'error');
+            console.error("Error:", error);
+            errorMsg.innerText = "डेटा लाने में कोई समस्या आई है। कृपया अपने फ़ायरबेस रूल्स जांचें।";
         }
     });
 </script>
